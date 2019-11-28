@@ -62,10 +62,9 @@ function parse_git_branch() {
 	local is_branch
 	local result
 	local COMMITSTATUS
-	local AHEAD
-	local BEHIND
 
 	if BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null); then
+		# Detached head case
 		if [[ "$BRANCH" == "HEAD" ]]; then
 			# Check for tag.
 			BRANCH=$(git name-rev --tags --name-only $(git rev-parse HEAD))
@@ -80,12 +79,13 @@ function parse_git_branch() {
 			fi
 		else
 			# This is a named branch.  (It might be local or remote.)
-			upstream=$(git rev-parse '@{upstream}' 2> /dev/null)
+			upstream=$(git rev-parse --abbrev-ref @{upstream} 2> /dev/null | cut -f1 -d "/")
 			is_branch=true
 		fi
 
 		local git_dir="$(git rev-parse --show-toplevel)/.git"
 
+		# Check if we are in a special state
 		if [[ -d "$git_dir/rebase-merge" ]] || [[ -d "$git_dir/rebase-apply" ]]; then
 			special_state=rebase
 		elif [[ -f "$git_dir/MERGE_HEAD" ]]; then
@@ -101,44 +101,35 @@ function parse_git_branch() {
 		if [[ -n "$special_state" ]]; then
 			result="{$BRANCH\\$special_state}"
 		elif [[ -n "$is_branch" && -n "$upstream" ]]; then
+			# Branch has an upstream
 
 			# Comparing commits w/ upstream
 			local brinfo=$(git branch -v 2> /dev/null | grep "* $BRANCH")
+			local ahead=$(git rev-list --left-right --count $BRANCH...$upstream/$BRANCH | cut -f1)
+			local behind=$(git rev-list --left-right --count $BRANCH...$upstream/$BRANCH | cut -f2)
 
-		    if [[ $brinfo =~ (\[ahead ([0-9]*)) ]]; then
-		        AHEAD="${BASH_REMATCH[2]}"
-		    fi
-
-		    if [[ $brinfo =~ (behind ([0-9]*)) ]]; then
-		        BEHIND="${BASH_REMATCH[2]}"
-		    fi
-
-		    if [[ ! -z "$AHEAD" ]]; then
-				COMMITSTATUS="$AHEAD"$'\u2197' #2198 for down
-				if [[ ! -z "$BEHIND" ]]; then
-					COMMITSTATUS="$COMMITSTATUS $BEHIND"$'\u2198' #2198 for down
+			if [[ "0" != $ahead ]]; then
+				COMMITSTATUS="$ahead"$'\u2197' #2197 for up
+				if [[ "0" != $behind ]]; then
+					COMMITSTATUS="$COMMITSTATUS $behind"$'\u2198' #2198 for down
 				fi
 			else
-				if [[ ! -z "$BEHIND" ]]; then
-					COMMITSTATUS="$BEHIND"$'\u2198' #2198 for down
+				if [[ "0" != $behind ]]; then
+					COMMITSTATUS="$behind"$'\u2198' #2198 for down
 				fi
 			fi
 
-			result="$BRANCH"
-
 			if [[ ! -z "$COMMITSTATUS" ]]; then
-				result="$result | $COMMITSTATUS"
+				result=" ($BRANCH | $COMMITSTATUS)"
+			else
+				result=" ($BRANCH)"
 			fi
 
-			result="($result)"     # Branch has an upstream
-
 		elif [[ -n "$is_branch" ]]; then
-			result="[$BRANCH]"     # Branch has no upstream
+			result=" [$BRANCH]"     # Branch has no upstream
 		else
-			result="<$BRANCH>"     # Detached
+			result=" <$BRANCH>"     # Detached
 		fi
-
-		result=" $result"
 	else
 		result=""
 	fi
@@ -149,18 +140,13 @@ function parse_git_branch() {
 function git_status_parse() {
 	# Checking for non staged files
 
-	local result
-
 	if BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null); then
-		local WORDCOUNT=$(git status -s | wc -l)
-		if [ "$WORDCOUNT" != "0" ]; then
-			result="*"
+		if [ "$(git status -s | wc -l)" != "0" ]; then
+			echo "*"
 		fi
 	else
-		result=""
+		echo ""
 	fi
-
-	echo "$result"
 }
 
 export GIT_DISCOVERY_ACROSS_FILESYSTEM=1

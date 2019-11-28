@@ -1,13 +1,30 @@
-" Set compatibility to Vim only.
+" Set compatibility to Vim only
 set nocompatible
 
 " Helps force plug-ins to load correctly when it is turned back on below.
 filetype off
 
-" Turn on syntax highlighting.
+" Turn on syntax highlighting
 syntax on
 
-" For plug-ins to load correctly.
+ru! defaults.vim                " Use Enhanced Vim defaults
+set mouse=a                     " Reset the mouse setting from defaults
+aug vimStartup | au! | aug END  " Revert last positioned jump, as it is defined below
+let g:skip_defaults_vim = 1     " Do not source defaults.vim again (after loading this system vimrc)
+
+set ai                          " set auto-indenting on for programming
+set showmatch                   " automatically show matching brackets. works like it does in bbedit.
+set vb                          " turn on the "visual bell" - which is much quieter than the "audio blink"
+set laststatus=2                " make the last line where the status is two lines deep so you can see status always
+set showmode                    " show the current mode
+set clipboard=unnamed           " set clipboard to unnamed to access the system clipboard under windows
+set wildmode=list:longest,longest:full   " Better command line completion
+
+set number
+set background=dark
+set showcmd
+
+" For plug-ins to load correctly
 filetype plugin indent on
 
 " Turn off modelines
@@ -20,15 +37,18 @@ set pastetoggle=<F2>
 
 " Uncomment below to set the max textwidth. Use a value corresponding to the width of your screen.
 " set textwidth=79
-set formatoptions=tcqrn1
+
+" Set tabs width to 4 spaces
 set tabstop=4
 set shiftwidth=4
 set softtabstop=4
-set expandtab
-set noshiftround
+set expandtab               " On pressing tab, insert 4 spaces
 set autoindent
 set smartindent
 set smarttab
+
+set formatoptions=tcqrn1
+set noshiftround
 
 set ruler
 
@@ -93,3 +113,14 @@ if filereadable(expand("~/.vimrc.plug"))
     source ~/.vimrc.plug
 endif
 
+" Show EOL type and last modified timestamp, right after the filename
+" Set the statusline
+set statusline=%f               " filename relative to current $PWD
+set statusline+=%h              " help file flag
+set statusline+=%m              " modified flag
+set statusline+=%r              " readonly flag
+set statusline+=\ [%{&ff}]      " Fileformat [unix]/[dos] etc...
+set statusline+=\ (%{strftime(\"%H:%M\ %d/%m/%Y\",getftime(expand(\"%:p\")))})  " last modified timestamp
+set statusline+=%=              " Rest: right align
+set statusline+=%l,%c%V         " Position in buffer: linenumber, column, virtual column
+set statusline+=\ %P            " Position in buffer: Percentage

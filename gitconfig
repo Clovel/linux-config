@@ -1,0 +1,13 @@
+[user]
+    email = clovis.durand.external@saftbatteries.com
+    name = Clovis Durand
+[http]
+    sslVerify = false
+[alias]
+    co = checkout
+    st = status --short
+    amend = commit --amend
+[core]
+    editor = vim
+[sendemail]
+    suppresscc = self
